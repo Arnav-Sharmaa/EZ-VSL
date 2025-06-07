@@ -9,7 +9,7 @@ import argparse
 from model import EZVSL
 from datasets import get_test_dataset, inverse_normalize
 import cv2
-
+import numpy as np  
 
 def get_arguments():
     parser = argparse.ArgumentParser()
@@ -73,10 +73,25 @@ def main(args):
 
     # Load weights
     ckp_fn = os.path.join(model_dir, 'best.pth')
+    # if os.path.exists(ckp_fn):
+    #     ckp = torch.load(ckp_fn, map_location='cpu')
+    #     audio_visual_model.load_state_dict({k.replace('module.', ''): ckp['model'][k] for k in ckp['model']})
+    #     print(f'loaded from {os.path.join(model_dir, "best.pth")}')
+    # else:
+    #     print(f"Checkpoint not found: {ckp_fn}")
     if os.path.exists(ckp_fn):
-        ckp = torch.load(ckp_fn, map_location='cpu')
-        audio_visual_model.load_state_dict({k.replace('module.', ''): ckp['model'][k] for k in ckp['model']})
-        print(f'loaded from {os.path.join(model_dir, "best.pth")}')
+        try:
+            # First try safe loading
+            ckp = torch.load(ckp_fn, map_location='cpu', weights_only=True)
+        except Exception as e:
+            if "weights only load failed" in str(e).lower():
+                # Allowlist the required globals
+                torch.serialization.add_safe_globals([np.core.multiarray.scalar])
+                ckp = torch.load(ckp_fn, map_location='cpu', weights_only=True)
+            else:
+                raise e
+        audio_visual_model.load_state_dict({k.replace('module.', ''): v for k, v in ckp['model'].items()})
+        print(f'loaded from {ckp_fn}')
     else:
         print(f"Checkpoint not found: {ckp_fn}")
 
