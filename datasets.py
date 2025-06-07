@@ -172,8 +172,8 @@ def get_train_dataset(args):
 
 
 def get_test_dataset(args):
-    audio_path = args.test_data_path + 'audio/'
-    image_path = args.test_data_path + 'frames/'
+    audio_path = f"{args.test_data_path}/audio/"
+    image_path = f"{args.test_data_path}/frames/"
 
     if args.testset == 'flickr':
         testcsv = 'metadata/flickr_test.csv'
