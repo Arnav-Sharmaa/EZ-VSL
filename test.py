@@ -117,7 +117,14 @@ def validate(testdataloader, audio_visual_model, object_saliency_model, viz_dir,
             pred_obj = utils.normalize_img(heatmap_obj[i, 0])
             pred_av_obj = utils.normalize_img(pred_av * args.alpha + pred_obj * (1 - args.alpha))
 
-            gt_map = bboxes['gt_map'].data.cpu().numpy()
+            if 'gt_map' in bboxes:
+                gt_map = bboxes['gt_map'].data.cpu().numpy()
+            else: 
+                bbox = bboxes['bboxes'][0]  
+                xmin, ymin, xmax, ymax = (np.array(bbox) * 224).astype(int)
+                gt_map = np.zeros((224, 224))
+                gt_map[ymin:ymax, xmin:xmax] = 1
+
 
             thr_av = np.sort(pred_av.flatten())[int(pred_av.shape[0] * pred_av.shape[1] * 0.5)]
             evaluator_av.cal_CIOU(pred_av, gt_map, thr_av)

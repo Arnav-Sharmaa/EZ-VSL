@@ -61,7 +61,7 @@ def load_all_bboxes(annotation_dir, format='flickr'):
             bboxes = [(np.clip(np.array(bbox), 0, 1) * 224).astype(int) for bbox in annotation['bbox']]
             gt_bboxes[annotation['file']] = bboxes
 
-    elif format == 'custom':  # Add this new format
+    elif format == 'custom': 
         json_path = os.path.join(annotation_dir, 'test_metadata.json')
         with open(json_path) as f:
             annotations = json.load(f)
@@ -179,70 +179,69 @@ def get_train_dataset(args):
     )
 
 
-def get_test_dataset(args):
-    audio_path = f"{args.test_data_path}/audio/"
-    image_path = f"{args.test_data_path}/frames/"
+    def get_test_dataset(args):
+        audio_path = f"{args.test_data_path}/audio/"
+        image_path = f"{args.test_data_path}/frames/"
 
-    # ADD THIS BLOCK FOR CUSTOM DATASET
-    if args.testset == 'custom':
-        testcsv = '/kaggle/working/test_data/metadata/custom_test.csv'
-        bbox_format = 'custom'
-        
-        # Retrieve list of files from custom CSV
-        testset = set([item[0] for item in csv.reader(open(testcsv))])
-        
-        # Intersect with available files
-        audio_files = {fn.split('.wav')[0] for fn in os.listdir(audio_path)}
-        image_files = {fn.split('.jpg')[0] for fn in os.listdir(image_path)}
-        avail_files = audio_files.intersection(image_files)
-        testset = testset.intersection(avail_files)
-        testset = sorted(list(testset))
-        image_files = [dt+'.jpg' for dt in testset]
-        audio_files = [dt+'.wav' for dt in testset]
-        
-        # Load custom bounding boxes
-        json_path = os.path.join(args.test_gt_path, 'test_metadata.json')
-        with open(json_path) as f:
-            annotations = json.load(f)
-        all_bboxes = {}
-        for annotation in annotations:
-            # Convert normalized coordinates to absolute pixels (0-224)
-            bbox = annotation['bbox'][0]
-            abs_bbox = (np.clip(np.array(bbox), 0, 1) * 224).astype(int)
-            all_bboxes[annotation['file']] = [abs_bbox.tolist()]
+        # ADD THIS BLOCK FOR CUSTOM DATASET
+        if args.testset == 'custom':
+            testcsv = '/kaggle/working/test_data/metadata/custom_test.csv'
+            bbox_format = 'custom'
             
-        # Transforms
-        image_transform = transforms.Compose([
-            transforms.Resize((224, 224), Image.BICUBIC),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])])
-        audio_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.0], std=[12.0])])
+            # Retrieve list of files from custom CSV
+            testset = set([item.strip() for item in open(testcsv)])
             
-        return AudioVisualDataset(
-            image_files=image_files,
-            audio_files=audio_files,
-            image_path=image_path,
-            audio_path=audio_path,
-            audio_dur=3.,
-            image_transform=image_transform,
-            audio_transform=audio_transform,
-            all_bboxes=all_bboxes,
-            bbox_format='vggss'  # Use vggss format for single annotation
-        )
-    
-    if args.testset == 'flickr':
-        testcsv = 'metadata/flickr_test.csv'
-    elif args.testset == 'vggss':
-        testcsv = 'metadata/vggss_test.csv'
-    elif args.testset == 'vggss_heard':
-        testcsv = 'metadata/vggss_heard_test.csv'
-    elif args.testset == 'vggss_unheard':
-        testcsv = 'metadata/vggss_unheard_test.csv'
-    else:
-        raise NotImplementedError
+            # Intersect with available files
+            audio_files = {fn.split('.wav')[0] for fn in os.listdir(audio_path)}
+            image_files = {fn.split('.jpg')[0] for fn in os.listdir(image_path)}
+            avail_files = audio_files.intersection(image_files)
+            testset = testset.intersection(avail_files)
+            testset = sorted(list(testset))
+            image_files = [dt+'.jpg' for dt in testset]
+            audio_files = [dt+'.wav' for dt in testset]
+            
+            json_path = os.path.join(args.test_gt_path, 'test_metadata.json')
+            with open(json_path) as f:
+                annotations = json.load(f)
+            all_bboxes = {}
+            for annotation in annotations:
+                # Convert normalized coordinates to absolute pixels (0-224)
+                bbox = annotation['bbox'][0]
+                abs_bbox = (np.clip(np.array(bbox), 0, 1) * 224).astype(int)
+                all_bboxes[annotation['file']] = annotation['bbox']
+                
+            # Transforms
+            image_transform = transforms.Compose([
+                transforms.Resize((224, 224), Image.BICUBIC),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                    std=[0.229, 0.224, 0.225])])
+            audio_transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.0], std=[12.0])])
+                
+            return AudioVisualDataset(
+                image_files=image_files,
+                audio_files=audio_files,
+                image_path=image_path,
+                audio_path=audio_path,
+                audio_dur=3.,
+                image_transform=image_transform,
+                audio_transform=audio_transform,
+                all_bboxes=all_bboxes,
+                bbox_format='vggss'  # Use vggss format for single annotation
+            )
+        
+        if args.testset == 'flickr':
+            testcsv = 'metadata/flickr_test.csv'
+        elif args.testset == 'vggss':
+            testcsv = 'metadata/vggss_test.csv'
+        elif args.testset == 'vggss_heard':
+            testcsv = 'metadata/vggss_heard_test.csv'
+        elif args.testset == 'vggss_unheard':
+            testcsv = 'metadata/vggss_unheard_test.csv'
+        else:
+            raise NotImplementedError
 
 def inverse_normalize(tensor):
     inverse_mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225]
