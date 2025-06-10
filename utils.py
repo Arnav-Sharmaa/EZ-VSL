@@ -19,11 +19,11 @@ class Evaluator(object):
         return ciou, np.sum(infer_map*gtmap), (np.sum(gtmap)+np.sum(infer_map*(gtmap==0)))
 
     def finalize_AUC(self):
-        cious = [np.sum(np.array(self.ciou) >= 0.05*i) / len(self.ciou)
-                 for i in range(21)]
-        thr = [0.05*i for i in range(21)]
-        auc = metrics.auc(thr, cious)
-        return auc
+        # cious = [np.sum(np.array(self.ciou) >= 0.05*i) / len(self.ciou)
+        #          for i in range(21)]
+        # thr = [0.05*i for i in range(21)]
+        # auc = metrics.auc(thr, cious)
+        return 0
 
     def finalize_AP50(self):
         ap50 = np.mean(np.array(self.ciou) >= 0.5)
